@@ -10,6 +10,7 @@ class event_tree(object):
 		self.edge_information = defaultdict() 
 		self.edge_labels = self.edge_labels_creation()
 		self.edges = self.edge_creation()
+		self.leaves = self.get_leaves()
 
 	def counts_for_unique_path_counts(self):
 		for variable_number in range(0, len(self.variables)):
@@ -52,6 +53,10 @@ class event_tree(object):
 		if len(list(self.edge_information.keys())) == 0:
 			self.edges_labels_counts()
 		return [x[1] for x in list(self.edge_information.keys())]
+
+	def get_leaves(self):
+		situations_where_edges_start = [x[0] for x in self.edges]
+		return [x[1] for x in self.edges if x[1] not in situations_where_edges_start]
 
 	
 
