@@ -73,7 +73,6 @@ class event_tree(object):
 			edge_countset.append([self.edge_counts[self.terminating_nodes.index(vertex)] for vertex in edgeset])
 		return edge_countset
 
-
 	def _edge_labels_creation(self):
 		if len(list(self.edge_information.keys())) == 0:
 			self._edges_labels_counts()
@@ -198,7 +197,7 @@ class event_tree(object):
 				if all(items ==0 for items in posterior[situation1]) == False: #as we will set one of the merged situations/stages as 0 vectors later to retain indices
 					model1 = [prior[situation1], posterior[situation1]]
 					for situation2 in range(situation1 +1, length):
-						if self._issubset([self.situations[situation1], self.situations[situation2] ], hyperstage) == 1 and all(items ==0 for items in posterior[situation2]) == False:
+						if self._issubset([self.situations[situation1], self.situations[situation2]], hyperstage) == 1 and all(items ==0 for items in posterior[situation2]) == False:
 							model2 = [prior[situation2], posterior[situation2]]
 							local_scores.append(self._bayesfactor(*model1, *model2))
 							local_merges.append([situation1,situation2])
@@ -219,6 +218,8 @@ class event_tree(object):
 				posterior_conditional_probabilities[make_changes_to[1]] = posterior[make_changes_to[0]]
 
 				likelihood += bayesfactor_score
+			elif max(local_scores) <= 0:
+				bayesfactor_score = 0
 
 		mean_posterior_conditional_probabilities = []
 		for array in posterior_conditional_probabilities:
