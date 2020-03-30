@@ -1,13 +1,16 @@
 from collections import defaultdict
 import scipy.special as special
 from operator import add
+import pydotplus as ptp
+from IPython.display import Image
+import random
 
 class event_tree(object):
 	def __init__(self, dataframe):
 		self.dataframe = dataframe
 		self.variables = list(self.dataframe.columns)
 		self.paths = defaultdict(int) #dict entry gives the path counts
-		self.situations = self._nodes()
+		self.nodes = self._nodes() #contains leaves
 		self.root = self._nodes()[0]
 		self.edge_information = defaultdict() 
 		self.edge_counts = self._edge_counts()
@@ -16,6 +19,9 @@ class event_tree(object):
 		self.emanating_nodes = self._emanating_nodes()
 		self.terminating_nodes = self._terminating_nodes()
 		self.leaves = self._get_leaves()
+		self.situations = self._get_situations()
+		self.edge_countset = self._edge_countset()
+
 
 	def _counts_for_unique_path_counts(self):
 		for variable_number in range(0, len(self.variables)):
@@ -49,9 +55,9 @@ class event_tree(object):
 			edge_labels_list.append(path)
 			if path[:-1] in edge_labels_list:
 				path_edge_comes_from = edge_labels_list.index(path[:-1])
-				edges_list.append([self.situations[path_edge_comes_from], self.situations[edge_labels_list.index(path)]])
+				edges_list.append([self.nodes[path_edge_comes_from], self.nodes[edge_labels_list.index(path)]])
 			else:
-				edges_list.append([self.situations[0], self.situations[edge_labels_list.index(path)]])
+				edges_list.append([self.nodes[0], self.nodes[edge_labels_list.index(path)]])
 			self.edge_information[((*path,),(*edges_list[-1],))] = self.paths[tuple(path)]
 		return self.edge_information
 
@@ -59,6 +65,14 @@ class event_tree(object):
 		if len(list(self.edge_information.keys())) == 0:
 			self._edges_labels_counts()
 		return [self.edge_information[x] for x in list(self.edge_information.keys())]
+
+	def _edge_countset(self):
+		edge_countset = []
+		for node in self.situations:
+			edgeset = [edge_pair[1] for edge_pair in self.edges if edge_pair[0] == node]
+			edge_countset.append([self.edge_counts[self.terminating_nodes.index(vertex)] for vertex in edgeset])
+		return edge_countset
+
 
 	def _edge_labels_creation(self):
 		if len(list(self.edge_information.keys())) == 0:
@@ -73,6 +87,9 @@ class event_tree(object):
 	def _get_leaves(self):
 		return [edge_pair[1] for edge_pair in self.edges if edge_pair[1] not in self.emanating_nodes]
 
+	def _get_situations(self):
+		return [node for node in self.nodes if node not in self.leaves]
+
 	def _emanating_nodes(self): #situations where edges start
 		return [edge_pair[0] for edge_pair in self.edges]
 
@@ -81,41 +98,40 @@ class event_tree(object):
 
 	def default_equivalent_sample_size(self):
 		alpha = max(self._number_of_categories_per_variable()) - 1
-		self.default_prior(alpha)
+		return alpha
 
 	def default_prior(self, equivalent_sample_size):
-		default_prior = [0] *len(self.edges)
-		sample_size_at_node = dict(float)
-		sample_size_at_node[self.roof] = equivalent_sample_size
-		assigned_nodes = list(self.root)
-		while (all(default_prior) !=0) == False:
-			for node in assigned_nodes:
-				if node in self.emanating_nodes:
-					number_of_occurences = self.emanating_nodes.count(node)
-					equal_distribution_of_sample = sample_size_at_node[node]/number_of_occurences
-					indices_of_relevant_terminating_nodes = [self.edges.index(edge_pair) for edge_pair in self.edges if edge_pair[0] == node]
-					for index in indices_of_relevant_terminating_nodes:
-						default_prior[index] = equal_distribution_of_sample
-						sample_size_at_node[self.terminating_nodes[index]] = equal_distribution_of_sample
-						assigned_nodes.append(self.terminating_nodes[index])
-					assigned_nodes.remove(node)
+		default_prior = [0] *len(self.situations)
+		sample_size_at_node = dict()
+		sample_size_at_node[self.root] = equivalent_sample_size
+		to_assign_nodes = self.situations.copy()
+		for node in to_assign_nodes:
+			number_of_occurences = self.emanating_nodes.count(node)
+			equal_distribution_of_sample = sample_size_at_node[node]/number_of_occurences
+			default_prior[self.situations.index(node)] = [equal_distribution_of_sample] *number_of_occurences
+			relevant_terminating_nodes = [self.terminating_nodes[self.edges.index(edge_pair)] for edge_pair in self.edges if edge_pair[0] == node]
+			for terminating_node in relevant_terminating_nodes:
+				sample_size_at_node[terminating_node] = equal_distribution_of_sample
 		return default_prior
 
 	def default_hyperstage(self):
 		default_hyperstage = []
 		number_of_edges = []
-		for node in self.emanating_nodes:
-			number_of_edges.append(len([edge_pair for edge_pair in self.edges if edge_pair[0]==node]))
+		for node in self.situations:
+			number_of_edges.append(self.emanating_nodes.count(node))
 		for value in set(number_of_edges):
 			situations_with_value_edges = []
-			for index in range(0, self.emanating_nodes):
+			for index in range(0, len(self.situations)):
 				if number_of_edges[index] == value:
-					situations_with_value_edges.append(self.emanating_nodes[index])
+					situations_with_value_edges.append(self.situations[index])
 			default_hyperstage = default_hyperstage + [situations_with_value_edges]
 		return default_hyperstage
 
 	def posterior(self, prior):
-		return list(map(add, prior, self.edge_counts))
+		posterior = []
+		for index in range(0, len(prior)):
+			posterior.append(list(map(add, prior[index], self.edge_countset[index])))
+		return posterior
 
 	def _function1(self, array):
 		return special.gammaln(sum(array))
@@ -169,7 +185,6 @@ class event_tree(object):
 		posterior = self.posterior(prior).copy()
 		length = len(prior)
 		likelihood = self._loglikehood(prior, posterior)
-
 		posterior_conditional_probabilities = posterior.copy()
 
 		merged_situation_list = []
@@ -183,11 +198,11 @@ class event_tree(object):
 				if all(items ==0 for items in posterior[situation1]) == False: #as we will set one of the merged situations/stages as 0 vectors later to retain indices
 					model1 = [prior[situation1], posterior[situation1]]
 					for situation2 in range(situation1 +1, length):
-						if sub([situation1, situation2], hyperstage) == 1 and all(items ==0 for items in posterior[situation2]) == False:
+						if self._issubset([self.situations[situation1], self.situations[situation2] ], hyperstage) == 1 and all(items ==0 for items in posterior[situation2]) == False:
 							model2 = [prior[situation2], posterior[situation2]]
 							local_scores.append(self._bayesfactor(*model1, *model2))
 							local_merges.append([situation1,situation2])
-			if max(local_scores) > 0:
+			if local_scores != [] and max(local_scores) > 0:
 				bayesfactor_score = max(local_scores)
 				merged_situation_list.append(local_merges[local_scores.index(bayesfactor_score)])
 
@@ -205,19 +220,66 @@ class event_tree(object):
 
 				likelihood += bayesfactor_score
 
-			else: 
-				bayesfactor_score = 0
-
 		mean_posterior_conditional_probabilities = []
 		for array in posterior_conditional_probabilities:
 			total = sum(array)
 			mean_posterior_conditional_probabilities.append([round(element/total, 3) for element in array])
 
+		list_of_merged_situations = self._sort_list(merged_situation_list)
 
-		return (self._sort_list(merged_situation_list), likelihood, mean_posterior_conditional_probabilities)
+		merged_situations = []
+		for stage in list_of_merged_situations:
+			merged_situations.append([self.situations[index] for index in stage])
+		self._merged_situations = merged_situations
+		self._mean_posterior_conditional_probabilities = mean_posterior_conditional_probabilities
+		return (merged_situations, likelihood, mean_posterior_conditional_probabilities)
 
+	def event_tree_figure(self, filename):
+		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
+		event_tree_graph = ptp.Dot(graph_type = 'digraph')
+		for edge in self.edges:
+			edge_index = self.edges.index(edge)
+			edge_details = str(self.edge_labels[edge_index][-1]) + '\n' + str(self.edge_counts[edge_index])
+			event_tree_graph.add_edge(ptp.Edge(edge[0], edge[1], label = edge_details, labelfontcolor="#009933", fontsize="10.0", color="black" ))
+		for node in nodes_for_event_tree:
+			event_tree_graph.add_node(ptp.Node(name = node[0], label = node[1], style = "filled"))
+		event_tree_graph.write_png(str(filename) + '.png')
+		return Image(event_tree_graph.create_png())
 
+	def _generate_colours(self, number):
+		_HEX = '0123456789ABCDEF'
+		def startcolor():
+			return '#' + ''.join(random.choice(_HEX) for _ in range(6))
+		colours = []
+		for index in range(0, number):
+			newcolour = startcolor()
+			while newcolour in colours:
+				newcolour = startcolor()
+			colours.append(newcolour)
+		return colours
 
+	def staged_tree_figure(self, filename):
+		try:
+			self._merged_situations
+			self._mean_posterior_conditional_probabilities
+		except NameError:
+			print ("First run self.AHC_transitions()")
+		else:
+			number_of_stages = len(self._merged_situations)
+			colours_for_tree = self._generate_colours(number_of_stages)
+			staged_tree_graph = ptp.Dot(graph_type = 'digraph')
+			for edge in self.edges:
+				edge_index = self.edges.index(edge)
+				edge_details = str(self.edge_labels[edge_index][-1])
+				staged_tree_graph.add_edge(ptp.Edge(edge[0], edge[1], label = edge_details, labelfontcolor="#009933", fontsize="10.0", color="black" ))
+			colour_index = 0
+			for stage in self._merged_situations:
+				for situation in stage:
+					staged_tree_graph.add_node(ptp.Node(name = situation, label = situation, style = "filled", fillcolor = colours_for_tree[colour_index]))
+				colour_index += 1
+			staged_tree_graph.write_png(str(filename) + '.png')
+			print("Number of stages is %s." %len(self._merged_situations))
+			return Image(staged_tree_graph.create_png())
 
 
 
