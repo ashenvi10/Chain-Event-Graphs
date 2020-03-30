@@ -279,7 +279,7 @@ class event_tree(object):
 					staged_tree_graph.add_node(ptp.Node(name = situation, label = situation, style = "filled", fillcolor = colours_for_tree[colour_index]))
 				colour_index += 1
 			staged_tree_graph.write_png(str(filename) + '.png')
-			print("Number of stages is %s." %len(self._merged_situations))
+			print("Number of stages is %s." %(len(self.situations) - len(self._merged_situations)))
 			return Image(staged_tree_graph.create_png())
 
 
