@@ -6,10 +6,12 @@ from IPython.display import Image
 import random
 
 class event_tree(object):
-	def __init__(self, dataframe):
-		self.dataframe = dataframe
+	def __init__(self, params):
+		self.dataframe = params.get('dataframe')
 		self.variables = list(self.dataframe.columns)
+		self.sampling_zero_paths = params.get('sampling_zero_paths')
 		self.paths = defaultdict(int) #dict entry gives the path counts
+		self._dummy_paths = defaultdict(int)
 		self.nodes = self._nodes() #contains leaves
 		self.root = self._nodes()[0]
 		self.edge_information = defaultdict() 
@@ -22,25 +24,37 @@ class event_tree(object):
 		self.situations = self._get_situations()
 		self.edge_countset = self._edge_countset()
 
-
 	def _counts_for_unique_path_counts(self):
-		dummy_paths = defaultdict(int)
+		self._dummy_paths = defaultdict(int)
 		for variable_number in range(0, len(self.variables)):
 			dataframe_upto_variable = self.dataframe.loc[:, self.variables[0:variable_number+1]]
 			for row in dataframe_upto_variable.itertuples():
 				row = row[1:]
-				dummy_paths[row] += 1
+				self._dummy_paths[row] += 1
 
-		depth = len(self.variables)
-		keys_of_list = list(dummy_paths.keys())
+		if self.sampling_zero_paths != None:
+			self.sampling_zeros(self.sampling_zero_paths)	
+
+		depth = len(max(list(self._dummy_paths.keys()), key=len))
+		keys_of_list = list(self._dummy_paths.keys())
 		sorted_keys = []
 		for deep in range(0,depth+1):
 		    unsorted_mini_list = [key for key in keys_of_list if len(key) == deep]
 		    sorted_keys = sorted_keys + sorted(unsorted_mini_list)
 
 		for key in sorted_keys:
-			self.paths[key] = dummy_paths[key]
+			self.paths[key] = self._dummy_paths[key]
+	
 		return self.paths
+
+	def sampling_zeros(self, paths):
+		#The paths must be tuples in a list in order
+		#i.e. path[:-1] should already be a key in self.paths
+		for path in paths:
+			if (path[:-1] in list(self._dummy_paths.keys())) or len(path) == 1:
+				self._dummy_paths[path] = 0
+			else:
+				raise ValueError("The path up to it's last edge should be added first. Ensure the tuple ends with a comma.")
 
 	def _number_of_categories_per_variable(self):
 		categories_of_variable = []

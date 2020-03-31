@@ -1,9 +1,11 @@
 import pandas as pd
 from event_tree_class import event_tree
+import pytest
+#from staged_tree_class import staged_tree
 
 df = pd.read_excel('CHDS.latentexample1.xlsx')
 
-dataframe1 = event_tree(df)
+dataframe1 = event_tree({'dataframe' : df})
 
 nodes = []
 for i in range(0, 43):
@@ -49,4 +51,22 @@ def test_ceg_in_book_stages():
     ['s18', 's7', 's10', 's13', 's15']]
 
 def test_ceg_in_book_loglikelihood():
-    assert round(dataframe1.AHC_transitions(alpha =3, hyperstage = ceg_book_hyperstage)[1],2) == -2478.49
+    assert dataframe1.AHC_transitions(alpha =3, hyperstage = ceg_book_hyperstage)[1] == pytest.approx(-2478.49, rel = 0.02)
+
+dataframe2 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average',), ('Average','High',)]})
+def test_sampling_stages():
+    assert dataframe2.AHC_transitions(alpha=3)[0] == [['s11', 's14'], ['s5', 's6', 's7'], 
+    ['s18', 's19', 's10', 's13', 's16'], ['s17', 's20', 's9', 's12', 's15']]
+
+def test_sampling_likelihood():
+    assert dataframe2.AHC_transitions(alpha=3)[1] == pytest.approx(-2486.89, 0.02)
+
+def test_sampling_error1():
+    with pytest.raises(ValueError) as excinfo:   
+        dataframe3 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average','High',),('Average',)]})
+        assert "The path up to it's last edge should be added first. Ensure the tuple ends with a comma." in str(excinfo.value)
+
+def test_sampling_error2():
+    with pytest.raises(ValueError) as excinfo:   
+        dataframe4 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average'),('Average','High',)]})
+        assert "The path up to it's last edge should be added first. Ensure the tuple ends with a comma." in str(excinfo.value)
