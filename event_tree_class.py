@@ -24,11 +24,22 @@ class event_tree(object):
 
 
 	def _counts_for_unique_path_counts(self):
+		dummy_paths = defaultdict(int)
 		for variable_number in range(0, len(self.variables)):
 			dataframe_upto_variable = self.dataframe.loc[:, self.variables[0:variable_number+1]]
 			for row in dataframe_upto_variable.itertuples():
 				row = row[1:]
-				self.paths[row] += 1
+				dummy_paths[row] += 1
+
+		depth = len(self.variables)
+		keys_of_list = list(dummy_paths.keys())
+		sorted_keys = []
+		for deep in range(0,depth+1):
+		    unsorted_mini_list = [key for key in keys_of_list if len(key) == deep]
+		    sorted_keys = sorted_keys + sorted(unsorted_mini_list)
+
+		for key in sorted_keys:
+			self.paths[key] = dummy_paths[key]
 		return self.paths
 
 	def _number_of_categories_per_variable(self):
@@ -96,7 +107,7 @@ class event_tree(object):
 		return [edge_pair[1] for edge_pair in self.edges]
 
 	def default_equivalent_sample_size(self):
-		alpha = max(self._number_of_categories_per_variable()) - 1
+		alpha = max(self._number_of_categories_per_variable()) 
 		return alpha
 
 	def default_prior(self, equivalent_sample_size):
@@ -279,7 +290,7 @@ class event_tree(object):
 					staged_tree_graph.add_node(ptp.Node(name = situation, label = situation, style = "filled", fillcolor = colours_for_tree[colour_index]))
 				colour_index += 1
 			staged_tree_graph.write_png(str(filename) + '.png')
-			print("Number of stages is %s." %(len(self.situations) - len(self._merged_situations)))
+			print("Number of stages is %s." %len(self._merged_situations))
 			return Image(staged_tree_graph.create_png())
 
 
