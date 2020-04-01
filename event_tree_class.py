@@ -4,6 +4,8 @@ from operator import add
 import pydotplus as ptp
 from IPython.display import Image
 import random
+import itertools
+
 
 class event_tree(object):
 	def __init__(self, params):
@@ -23,6 +25,8 @@ class event_tree(object):
 		self.leaves = self._get_leaves()
 		self.situations = self._get_situations()
 		self.edge_countset = self._edge_countset()
+		self._merged_situations = None
+		self._mean_posterior_conditional_probabilities = None
 
 	def _counts_for_unique_path_counts(self):
 		self._dummy_paths = defaultdict(int)
@@ -259,6 +263,115 @@ class event_tree(object):
 		self._merged_situations = merged_situations
 		self._mean_posterior_conditional_probabilities = mean_posterior_conditional_probabilities
 		return (merged_situations, likelihood, mean_posterior_conditional_probabilities)
+
+	def _ceg_positions_edges(self):
+		if self._merged_situations == None:
+			raise ValueError("Run AHC transitions first.")
+		if self._mean_posterior_conditional_probabilities == None:
+			raise ValueError("Run AHC transitions first.")
+
+		ceg_edge_labels = self.edge_labels.copy()
+		ceg_edges = self.edges.copy()
+		ceg_edge_counts = self.edge_counts.copy()
+
+		ceg_positions = self.nodes.copy()
+		cut_vertices = []
+
+		for edge in self.edges:
+			if edge[1] in self.leaves:
+				edge_index = ceg_edges.index(edge)
+				ceg_edges.pop(edge_index)
+				ceg_edge_labels.append(ceg_edge_labels[edge_index])
+				ceg_edge_counts.append(ceg_edge_counts[edge_index])
+				ceg_edge_labels.pop(edge_index)
+				ceg_edge_counts.pop(edge_index)
+				ceg_edges.append((edge[0], 'w_inf'))
+				cut_vertices.append(edge[0])
+		ceg_positions = [node for node in ceg_positions if node not in self.leaves]
+		ceg_positions.append('w_inf')
+		cut_vertices = list(set(cut_vertices))
+
+		while cut_vertices != ['s0']:
+			cut_stages = []
+			while cut_vertices != []:
+				for vertex_1 in cut_vertices:
+					cut_stage_1 = [vertex_1]
+					vertex_1_info = []
+					for edge in ceg_edges:
+						if edge[0] == vertex_1:
+							edge_index = ceg_edges.index(edge)
+							vertex_1_info.append((ceg_edge_labels[edge_index][-1], edge[1]))
+					vertex_1_info.sort(key = lambda tup: tup[0])
+					for vertex_2 in cut_vertices:
+						if vertex_1 != vertex_2:
+							logic_values = [(vertex_1 in stage, vertex_2 in stage) for stage in self._merged_situations]
+							if any(value == (True, True) for value in logic_values):
+								vertex_2_info = []
+								for edge in ceg_edges:
+									if edge[0]== vertex_2:
+										edge_index = ceg_edges.index(edge)
+										vertex_2_info.append((ceg_edge_labels[edge_index][-1], edge[1]))
+								#checking if the terminating nodes and edge labels match
+								vertex_2_info.sort(key = lambda tup: tup[0])
+								if vertex_1_info == vertex_2_info:
+									cut_stage_1.append(vertex_2)
+					cut_stages.append(cut_stage_1)
+					for node in cut_stage_1:
+						cut_vertices.remove(node)
+
+			#new vertex set
+			add_vertices = [x[0] for x in cut_stages]
+			remove_vertices = list(itertools.chain(*cut_stages))
+			remove_vertices = [node for node in remove_vertices if node not in add_vertices]
+			replacement_nodes = []
+			for node in remove_vertices:
+				replace_with = [x[0] for x in cut_stages if node in x][0]
+				replacement_nodes.append(replace_with)
+			ceg_positions = [node for node in ceg_positions if node not in remove_vertices]
+
+			#new edge set
+			edges_to_remove = []
+			edges_to_adapt = []
+			for edge in ceg_edges:
+				if edge[0] in remove_vertices:
+					edge_index = ceg_edges.index(edge)
+					edges_to_remove.append(edge)
+					replace_node = replacement_nodes[remove_vertices.index(edge[0])] 
+					replace_index = ceg_edges.index((replace_node, edge[1]))
+					ceg_edge_counts[replace_index] += ceg_edge_counts[edge_index]
+				elif edge[1] in remove_vertices:
+					edges_to_adapt.append(edge)
+
+			for edge in edges_to_remove:
+				edge_index = ceg_edges.index(edge)
+				ceg_edges.pop(edge_index)
+				ceg_edge_labels.pop(edge_index)
+				ceg_edge_counts.pop(edge_index)
+
+			for edge in edges_to_adapt:
+				edge_index = ceg_edges.index(edge)
+				ceg_edges.pop(edge_index)
+				replace_node = replacement_nodes[remove_vertices.index(edge[1])]
+				ceg_edges.insert(edge_index, (edge[0], replace_node))
+
+			cut_vertices = [edge[0] for edge in ceg_edges if edge[1] in add_vertices]
+			cut_vertices = list(set(cut_vertices))
+
+		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
+
+	def ceg_figure(self, filename):
+		ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts = self._ceg_positions_edges() 
+		nodes_for_ceg = [(node, str(node)) for node in ceg_positions]
+		ceg_graph = ptp.Dot(graph_type = 'digraph')
+		for edge_index in range(0, len(ceg_edges)):
+			edge = ceg_edges[edge_index]
+			edge_details = str(ceg_edge_labels[edge_index][-1]) + '\n' + str(ceg_edge_counts[edge_index])
+			ceg_graph.add_edge(ptp.Edge(edge[0], edge[1], label = edge_details, labelfontcolor="#009933", fontsize="10.0", color="black" ))
+		for node in nodes_for_ceg:
+			ceg_graph.add_node(ptp.Node(name = node[0], label = node[1], style = "filled"))
+		ceg_graph.write_png(str(filename) + '.png')
+		return Image(ceg_graph.create_png())
+		
 
 	def event_tree_figure(self, filename):
 		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
