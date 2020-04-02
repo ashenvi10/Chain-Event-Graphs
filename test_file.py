@@ -1,7 +1,6 @@
 import pandas as pd
 from event_tree_class import event_tree
 import pytest
-#from staged_tree_class import staged_tree
 
 df = pd.read_excel('CHDS.latentexample1.xlsx')
 
@@ -73,5 +72,6 @@ def test_sampling_error2():
 
 
 dataframe1.AHC_transitions(alpha=3, hyperstage=ceg_book_hyperstage)
-#print(dataframe1._merged_situations)
+#print(dataframe1._stage_colours)
+dataframe1.staged_tree_figure("staged_tree")
 dataframe1.ceg_figure("ceg")

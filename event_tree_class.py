@@ -27,6 +27,8 @@ class event_tree(object):
 		self.edge_countset = self._edge_countset()
 		self._merged_situations = None
 		self._mean_posterior_conditional_probabilities = None
+		self._stage_colours = None #list of colours for the stages
+		self._position_colours = None #pairs of (position, colour)
 
 	def _counts_for_unique_path_counts(self):
 		self._dummy_paths = defaultdict(int)
@@ -262,6 +264,18 @@ class event_tree(object):
 			merged_situations.append([self.situations[index] for index in stage])
 		self._merged_situations = merged_situations
 		self._mean_posterior_conditional_probabilities = mean_posterior_conditional_probabilities
+		number_of_stages = len(self._merged_situations)
+		stage_colours = self._generate_colours(number_of_stages)
+		colours_for_situations = []
+		for node in self.nodes:
+			stage_logic_values = [(node in stage) for stage in self._merged_situations] 
+			if all(value == (False) for value in stage_logic_values):
+				colours_for_situations.append((node, 'lightgrey'))
+			else:
+				colour_index = stage_logic_values.index((True))
+				colours_for_situations.append((node, stage_colours[colour_index]))
+		self._stage_colours = colours_for_situations
+
 		return (merged_situations, likelihood, mean_posterior_conditional_probabilities)
 
 	def _ceg_positions_edges(self):
@@ -357,6 +371,15 @@ class event_tree(object):
 			cut_vertices = [edge[0] for edge in ceg_edges if edge[1] in add_vertices]
 			cut_vertices = list(set(cut_vertices))
 
+		colours_for_positions = []
+		for position in ceg_positions:
+			position_colour = [pair for pair in self._stage_colours if pair[0] == position]
+			if len(position_colour) == 0:
+				colours_for_positions.append((position, 'lightgrey'))
+			else:
+				colours_for_positions.append(position_colour[0])
+		self._position_colours = colours_for_positions
+
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
 	def ceg_figure(self, filename):
@@ -368,10 +391,10 @@ class event_tree(object):
 			edge_details = str(ceg_edge_labels[edge_index][-1]) + '\n' + str(ceg_edge_counts[edge_index])
 			ceg_graph.add_edge(ptp.Edge(edge[0], edge[1], label = edge_details, labelfontcolor="#009933", fontsize="10.0", color="black" ))
 		for node in nodes_for_ceg:
-			ceg_graph.add_node(ptp.Node(name = node[0], label = node[1], style = "filled"))
+			fill_colour = [pair[1] for pair in self._position_colours if pair[0] == node[0]][0]
+			ceg_graph.add_node(ptp.Node(name = node[0], label = node[1], style = "filled", fillcolor = fill_colour))
 		ceg_graph.write_png(str(filename) + '.png')
 		return Image(ceg_graph.create_png())
-		
 
 	def event_tree_figure(self, filename):
 		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
@@ -386,6 +409,7 @@ class event_tree(object):
 		return Image(event_tree_graph.create_png())
 
 	def _generate_colours(self, number):
+		random.seed(12345)
 		_HEX = '0123456789ABCDEF'
 		def startcolor():
 			return '#' + ''.join(random.choice(_HEX) for _ in range(6))
@@ -401,23 +425,20 @@ class event_tree(object):
 		try:
 			self._merged_situations
 			self._mean_posterior_conditional_probabilities
-		except NameError:
+			self._stage_colours
+		except ValueError:
 			print ("First run self.AHC_transitions()")
 		else:
-			number_of_stages = len(self._merged_situations)
-			colours_for_tree = self._generate_colours(number_of_stages)
+			nodes_for_staged_tree = [(node, str(node)) for node in self.nodes]
 			staged_tree_graph = ptp.Dot(graph_type = 'digraph')
 			for edge in self.edges:
 				edge_index = self.edges.index(edge)
-				edge_details = str(self.edge_labels[edge_index][-1])
+				edge_details = str(self.edge_labels[edge_index][-1]) + '\n' + str(self.edge_counts[edge_index])
 				staged_tree_graph.add_edge(ptp.Edge(edge[0], edge[1], label = edge_details, labelfontcolor="#009933", fontsize="10.0", color="black" ))
-			colour_index = 0
-			for stage in self._merged_situations:
-				for situation in stage:
-					staged_tree_graph.add_node(ptp.Node(name = situation, label = situation, style = "filled", fillcolor = colours_for_tree[colour_index]))
-				colour_index += 1
+			for node in nodes_for_staged_tree:
+				fill_colour = [pair[1] for pair in self._stage_colours if pair[0] == node[0]][0]
+				staged_tree_graph.add_node(ptp.Node(name = node[0], label = node[1], style = "filled", fillcolor = fill_colour))
 			staged_tree_graph.write_png(str(filename) + '.png')
-			print("Number of stages is %s." %len(self._merged_situations))
 			return Image(staged_tree_graph.create_png())
 
 
