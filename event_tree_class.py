@@ -346,15 +346,31 @@ class event_tree(object):
 			#new edge set
 			edges_to_remove = []
 			edges_to_adapt = []
-			for edge in ceg_edges:
+
+			for edge_index in range(0, len(ceg_edges)):
+				edge = ceg_edges[edge_index]
+				label  = ceg_edge_labels[edge_index][-1]
 				if edge[0] in remove_vertices:
-					edge_index = ceg_edges.index(edge)
+					replace_index = []
 					edges_to_remove.append(edge)
-					replace_node = replacement_nodes[remove_vertices.index(edge[0])] 
-					replace_index = ceg_edges.index((replace_node, edge[1]))
-					ceg_edge_counts[replace_index] += ceg_edge_counts[edge_index]
+					replace_node = replacement_nodes[remove_vertices.index(edge[0])]
+					for index_2 in range(0, len(ceg_edges)):
+						replace_edge = ceg_edges[index_2]
+						if replace_edge == (replace_node, edge[1]) and ceg_edge_labels[index_2][-1] == label:
+							replace_index.append(index_2)
+					ceg_edge_counts[replace_index[0]] += ceg_edge_counts[edge_index]
 				elif edge[1] in remove_vertices:
 					edges_to_adapt.append(edge)
+
+			# for edge in ceg_edges:
+			# 	if edge[0] in remove_vertices:
+			# 		edge_index = ceg_edges.index(edge)
+			# 		edges_to_remove.append(edge)
+			# 		replace_node = replacement_nodes[remove_vertices.index(edge[0])] 
+			# 		replace_index = ceg_edges.index((replace_node, edge[1]))
+			# 		ceg_edge_counts[replace_index] += ceg_edge_counts[edge_index]
+			# 	elif edge[1] in remove_vertices:
+			# 		edges_to_adapt.append(edge)
 
 			for edge in edges_to_remove:
 				edge_index = ceg_edges.index(edge)
