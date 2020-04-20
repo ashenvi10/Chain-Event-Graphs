@@ -362,16 +362,6 @@ class event_tree(object):
 				elif edge[1] in remove_vertices:
 					edges_to_adapt.append(edge)
 
-			# for edge in ceg_edges:
-			# 	if edge[0] in remove_vertices:
-			# 		edge_index = ceg_edges.index(edge)
-			# 		edges_to_remove.append(edge)
-			# 		replace_node = replacement_nodes[remove_vertices.index(edge[0])] 
-			# 		replace_index = ceg_edges.index((replace_node, edge[1]))
-			# 		ceg_edge_counts[replace_index] += ceg_edge_counts[edge_index]
-			# 	elif edge[1] in remove_vertices:
-			# 		edges_to_adapt.append(edge)
-
 			for edge in edges_to_remove:
 				edge_index = ceg_edges.index(edge)
 				ceg_edges.pop(edge_index)
@@ -401,7 +391,7 @@ class event_tree(object):
 	def ceg_figure(self, filename):
 		ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts = self._ceg_positions_edges() 
 		nodes_for_ceg = [(node, str(node)) for node in ceg_positions]
-		ceg_graph = ptp.Dot(graph_type = 'digraph')
+		ceg_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
 		for edge_index in range(0, len(ceg_edges)):
 			edge = ceg_edges[edge_index]
 			edge_details = str(ceg_edge_labels[edge_index][-1]) + '\n' + str(ceg_edge_counts[edge_index])
@@ -414,7 +404,7 @@ class event_tree(object):
 
 	def event_tree_figure(self, filename):
 		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
-		event_tree_graph = ptp.Dot(graph_type = 'digraph')
+		event_tree_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
 		for edge in self.edges:
 			edge_index = self.edges.index(edge)
 			edge_details = str(self.edge_labels[edge_index][-1]) + '\n' + str(self.edge_counts[edge_index])
@@ -446,7 +436,7 @@ class event_tree(object):
 			print ("First run self.AHC_transitions()")
 		else:
 			nodes_for_staged_tree = [(node, str(node)) for node in self.nodes]
-			staged_tree_graph = ptp.Dot(graph_type = 'digraph')
+			staged_tree_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
 			for edge in self.edges:
 				edge_index = self.edges.index(edge)
 				edge_details = str(self.edge_labels[edge_index][-1]) + '\n' + str(self.edge_counts[edge_index])

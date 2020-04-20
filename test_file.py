@@ -72,6 +72,5 @@ def test_sampling_error2():
 
 
 dataframe1.AHC_transitions(alpha=3, hyperstage=ceg_book_hyperstage)
-#print(dataframe1._stage_colours)
 dataframe1.staged_tree_figure("staged_tree")
 dataframe1.ceg_figure("ceg")
