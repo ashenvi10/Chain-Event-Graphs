@@ -211,6 +211,7 @@ class event_tree(object):
 		if hyperstage is None:
 			hyperstage = self.default_hyperstage()
 		prior = prior.copy()
+		self._prior = prior.copy()
 		hyperstage = hyperstage.copy()
 		posterior = self.posterior(prior).copy()
 		length = len(prior)
@@ -267,6 +268,7 @@ class event_tree(object):
 		number_of_stages = len(self._merged_situations)
 		stage_colours = self._generate_colours(number_of_stages)
 		colours_for_situations = []
+
 		for node in self.nodes:
 			stage_logic_values = [(node in stage) for stage in self._merged_situations] 
 			if all(value == (False) for value in stage_logic_values):
@@ -286,7 +288,11 @@ class event_tree(object):
 
 		ceg_edge_labels = self.edge_labels.copy()
 		ceg_edges = self.edges.copy()
-		ceg_edge_counts = self.edge_counts.copy()
+		ceg_prior = []
+		for sublist in self._prior:
+			ceg_prior = ceg_prior + sublist
+
+		ceg_edge_counts = list(map(add, self.edge_counts.copy(), ceg_prior))
 
 		ceg_positions = self.nodes.copy()
 		cut_vertices = []
