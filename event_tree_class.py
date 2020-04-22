@@ -392,6 +392,20 @@ class event_tree(object):
 				colours_for_positions.append(position_colour[0])
 		self._position_colours = colours_for_positions
 
+		edges_in_ceg = ceg_edges.copy()
+		for node in ceg_positions:
+			edge_indices_for_node = []
+			for index in range(0, len(edges_in_ceg)):
+				if edges_in_ceg[index][0] == node:
+					edge_indices_for_node.append(index)
+					
+			counts_for_node = []
+			for index in edge_indices_for_node:
+				counts_for_node.append(ceg_edge_counts[index])
+			total = sum(counts_for_node)
+			for index in edge_indices_for_node:
+				ceg_edge_counts[index] = round(ceg_edge_counts[index]/total, 3)
+
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
 	def ceg_figure(self, filename):
