@@ -2,10 +2,12 @@ import pandas as pd
 from event_tree_class import event_tree
 import pytest
 
-df = pd.read_excel('CHDS.latentexample1.xlsx')
+#df = pd.read_excel('CHDS.latentexample1.xlsx')
+df= pd.read_excel('Datasets/iris.xlsx')
+df.drop(df.columns[[0]], axis = 1, inplace=True)
 
 dataframe1 = event_tree({'dataframe' : df})
-
+'''
 nodes = []
 for i in range(0, 43):
     nodes.append('s%d' %i)
@@ -69,9 +71,9 @@ def test_sampling_error2():
     with pytest.raises(ValueError) as excinfo:   
         dataframe4 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average'),('Average','High',)]})
         assert "The path up to it's last edge should be added first. Ensure the tuple ends with a comma." in str(excinfo.value)
+'''
 
-
-dataframe1.AHC_transitions(alpha=3, hyperstage=ceg_book_hyperstage)
-dataframe1.staged_tree_figure("staged_tree")
-dataframe1.ceg_figure("ceg2")
-
+dataframe1.AHC_transitions()
+#dataframe1.staged_tree_figure("staged_tree")
+print(dataframe1._ceg_positions_edges())
+print(dataframe1._ceg_positions_edges_optimal())
