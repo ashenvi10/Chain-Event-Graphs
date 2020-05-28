@@ -2,10 +2,10 @@ import pandas as pd
 from event_tree_class import event_tree
 import pytest
 
-#df = pd.read_excel('CHDS.latentexample1.xlsx')
-df= pd.read_excel('Datasets/iris.xlsx')
-df.drop(df.columns[[0]], axis = 1, inplace=True)
-
+df = pd.read_excel('CHDS.latentexample1.xlsx')
+#df= pd.read_excel('Datasets/rdceg_falls.xlsx')
+#df.drop(df.columns[[0]], axis = 1, inplace=True)
+#print(df.head())
 dataframe1 = event_tree({'dataframe' : df})
 '''
 nodes = []
@@ -74,6 +74,8 @@ def test_sampling_error2():
 '''
 
 dataframe1.AHC_transitions()
-#dataframe1.staged_tree_figure("staged_tree")
+dataframe1.staged_tree_figure("staged_tree")
+#dataframe1.ceg_figure_optimal("ceg_glass_optimal")
+#dataframe1.ceg_figure_silander("ceg_silander")
 print(dataframe1._ceg_positions_edges())
 print(dataframe1._ceg_positions_edges_optimal())

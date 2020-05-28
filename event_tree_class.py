@@ -9,6 +9,7 @@ import time
 import functools
 import datetime
 import networkx as nx
+import numpy as np
 
 class event_tree(object):
 	def __init__(self, params):
@@ -59,7 +60,8 @@ class event_tree(object):
 	'''adding path dict entries for each path, including the sampling zero paths if any.
 	Each path is an ordered sequence of edge labels starting from the root.
 	The keys in the dict are ordered alphabetically.
-	Also calls the method self.sampling zeros to ensure manually added path format is correct.'''
+	Also calls the method self.sampling zeros to ensure manually added path format is correct.
+	Added functionality to remove NaN/null edge labels assuming they are structural zeroes'''
 	def _counts_for_unique_path_counts(self):
 		self._dummy_paths = defaultdict(int)
 		for variable_number in range(0, len(self.variables)):
@@ -79,8 +81,11 @@ class event_tree(object):
 		    sorted_keys = sorted_keys + sorted(unsorted_mini_list)
 
 		for key in sorted_keys:
-			self.paths[key] = self._dummy_paths[key]
-	
+			if key[-1] == np.nan or str(key[-1]) == 'nan' or str(key[-1]) == 'NaN':
+				pass
+			else:
+				self.paths[key] = self._dummy_paths[key]
+
 		return self.paths
 
 	'''The sampling zero paths must be tuples in a list. Each tuple is a sampling zero path
@@ -442,8 +447,8 @@ class event_tree(object):
 		changes_made = 5
 		while changes_made != 0:
 			cut_stages = []
+			changes_made = 0
 			while cut_vertices != []:
-				changes_made = 0
 				for vertex_1 in cut_vertices:
 					cut_stage_1 = [vertex_1]
 					vertex_1_info = []
@@ -540,7 +545,7 @@ class event_tree(object):
 			total = sum(counts_for_node)
 			for index in edge_indices_for_node:
 				ceg_edge_counts[index] = round(ceg_edge_counts[index]/total, 3)
-
+		print(len(ceg_positions))
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
 	@timeit
@@ -602,6 +607,7 @@ class event_tree(object):
 					cut_stages.append(cut_stage_1)
 					for node in cut_stage_1:
 						cut_vertices.remove(node)
+			
 
 			#new vertex set
 			add_vertices = [x[0] for x in cut_stages]
@@ -650,6 +656,7 @@ class event_tree(object):
 			cut_vertices = [edge[0] for edge in ceg_edges if edge[1] in add_vertices]
 			cut_vertices = list(set(cut_vertices))
 
+
 		colours_for_positions = []
 		for position in ceg_positions:
 			position_colour = [pair for pair in self._stage_colours if pair[0] == position]
@@ -672,7 +679,7 @@ class event_tree(object):
 			total = sum(counts_for_node)
 			for index in edge_indices_for_node:
 				ceg_edge_counts[index] = round(ceg_edge_counts[index]/total, 3)
-
+		print(len(ceg_positions))
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
 	def ceg_figure_silander(self, filename):
