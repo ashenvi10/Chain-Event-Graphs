@@ -8,3 +8,4 @@ The code here was developed as part of my PhD project.
 
 • The algorithm it uses to transform a staged tree into a CEG has been reported in a paper which has just been submitted to a conference.
 
+For more information: Email me at a.shenvi@warwick.ac.uk
