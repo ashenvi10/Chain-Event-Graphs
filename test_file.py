@@ -3,11 +3,8 @@ from event_tree_class import event_tree
 import pytest
 
 df = pd.read_excel('CHDS.latentexample1.xlsx')
-#df= pd.read_excel('Datasets/rdceg_falls.xlsx')
-#df.drop(df.columns[[0]], axis = 1, inplace=True)
-#print(df.head())
 dataframe1 = event_tree({'dataframe' : df})
-'''
+
 nodes = []
 for i in range(0, 43):
     nodes.append('s%d' %i)
@@ -37,10 +34,11 @@ def test_default_prior():
     [2.5,2.5],[2.5,2.5],[2.5,2.5],[2.5,2.5],[2.5,2.5],[2.5,2.5],
     [2.5,2.5],[2.5,2.5],[2.5,2.5]]
 
-hyperstage1 = ['s3', 's4', 's5', 's6'] 
-hyperstage2 = [x for x in nodes[0:19] if x not in hyperstage1]
+hyperstage1 = ['s0', 's1', 's2']
+hyperstage2 = ['s3', 's4', 's5', 's6'] 
+hyperstage3 = [x for x in nodes[7:19]]
 def test_default_hyperstage():
-    assert dataframe1.default_hyperstage() == [hyperstage2, hyperstage1]
+    assert dataframe1.default_hyperstage() == [hyperstage1, hyperstage2, hyperstage3]
 
 #checking whether we get the same stages as in Fig 7.5a
 # in Collazo, Gorgen and Smith CEG book
@@ -71,11 +69,4 @@ def test_sampling_error2():
     with pytest.raises(ValueError) as excinfo:   
         dataframe4 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average'),('Average','High',)]})
         assert "The path up to it's last edge should be added first. Ensure the tuple ends with a comma." in str(excinfo.value)
-'''
 
-dataframe1.AHC_transitions()
-dataframe1.staged_tree_figure("staged_tree")
-#dataframe1.ceg_figure_optimal("ceg_glass_optimal")
-#dataframe1.ceg_figure_silander("ceg_silander")
-print(dataframe1._ceg_positions_edges())
-print(dataframe1._ceg_positions_edges_optimal())
