@@ -7,7 +7,7 @@ import csv
 datasets_1 = ['CHDS.latentexample1.xlsx', 'falls.xlsx', 'rdceg_falls.xlsx', 'hayes-roth.xlsx','balance_scale.xlsx', 'glass.xlsx',
 'iris.xlsx','tic-tac-toe.xlsx']
 
-datasets_2 = ['glass.xlsx', 'breast-cancer', 'nursery']
+datasets_2 = ['breast-cancer.xlsx', 'nursery.xlsx']
 #dataset_2 = ['nursery.xlsx','mushroom.xlsx', 'voting.xlsx',
 # 'primary-tumor.xlsx', 'breast-cancer.xlsx', 'epilepsy.xlsx']
 
