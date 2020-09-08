@@ -3,19 +3,16 @@ import numpy as np
 from event_tree_class import event_tree
 from collections import defaultdict 
 import csv
+#uncomment (remove the hash) before the @timeit decorator before _ceg_positions_edges(self) and
+# _ceg_positions_edges_optimal(self)
 
 datasets_1 = ['CHDS.latentexample1.xlsx', 'falls.xlsx', 'rdceg_falls.xlsx', 'hayes-roth.xlsx','balance_scale.xlsx', 'glass.xlsx',
-'iris.xlsx','tic-tac-toe.xlsx']
-
-datasets_2 = ['breast-cancer.xlsx', 'nursery.xlsx']
-#dataset_2 = ['nursery.xlsx','mushroom.xlsx', 'voting.xlsx',
-# 'primary-tumor.xlsx', 'breast-cancer.xlsx', 'epilepsy.xlsx']
+'iris.xlsx','tic-tac-toe.xlsx', 'breast-cancer.xlsx', 'nursery.xlsx']
 
 dataset_dict = defaultdict(list)
 
 i = 0
-#class_objects = [] #the ith dataset is a class in the ith position
-for dataname in datasets_2:
+for dataname in datasets_1:
 	filename = 'Datasets/' + dataname 
 	data = pd.read_excel(filename)
 	df = event_tree({'dataframe' : data})

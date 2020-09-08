@@ -69,4 +69,3 @@ def test_sampling_error2():
     with pytest.raises(ValueError) as excinfo:   
         dataframe4 = event_tree({'dataframe': df, 'sampling_zero_paths': [('Average'),('Average','High',)]})
         assert "The path up to it's last edge should be added first. Ensure the tuple ends with a comma." in str(excinfo.value)
-

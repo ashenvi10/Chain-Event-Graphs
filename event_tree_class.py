@@ -428,7 +428,7 @@ class event_tree(object):
 	CEG and the edges of the CEG along with their edge labels and edge counts. Here we use the algorithm in our
 	paper with the optimal stopping time.
 	NOTE: comment out the decorator on the next line when running the code to draw the graph of the CEG.'''
-	@timeit
+	#@timeit
 	def _ceg_positions_edges_optimal(self):
 		if self._merged_situations == None:
 			raise ValueError("Run AHC transitions first.")
@@ -568,7 +568,7 @@ class event_tree(object):
 	CEG and the edges of the CEG along with their edge labels and edge counts. Here we use the generalisation of 
 	Silander and Leong's algorithm which is also described in our paper in the Experiments section.
 	NOTE: comment out the decorator on the next line when running the code to draw the graph of the CEG.'''
-	@timeit
+	#@timeit
 	def _ceg_positions_edges(self):
 		if self._merged_situations == None:
 			raise ValueError("Run AHC transitions first.")
