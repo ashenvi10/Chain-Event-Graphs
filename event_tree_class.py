@@ -57,12 +57,13 @@ class event_tree(object):
 		#shortest distance from a situation to a leaf in the event tree
 		self.shortest_path = self._shortest_path()
 
+	def _counts_for_unique_path_counts(self):
 	'''adding path dict entries for each path, including the sampling zero paths if any.
 	Each path is an ordered sequence of edge labels starting from the root.
 	The keys in the dict are ordered alphabetically.
 	Also calls the method self.sampling zeros to ensure manually added path format is correct.
 	Added functionality to remove NaN/null edge labels assuming they are structural zeroes'''
-	def _counts_for_unique_path_counts(self):
+
 		self._dummy_paths = defaultdict(int)
 		for variable_number in range(0, len(self.variables)):
 			dataframe_upto_variable = self.dataframe.loc[:, self.variables[0:variable_number+1]]
@@ -88,6 +89,7 @@ class event_tree(object):
 
 		return self.paths
 
+	def sampling_zeros(self, paths):
 	'''The sampling zero paths must be tuples in a list. Each tuple is a sampling zero path
 	that needs to be added. If multiple edges along a path need to be added, they must be 
 	added in order. i.e. path[:-1] should already be a key in self.paths 
@@ -95,22 +97,21 @@ class event_tree(object):
 	('eat', 'sleep'), ('eat', 'sleep', 'repeat'), the sampling zero parameter should be added as:
 	et = event_tree({'dataframe': df, 'sampling_zero_paths': [('eat', 'sleep',),('eat', 'sleep','repeat',)]})
 	'''	
-	def sampling_zeros(self, paths):
 		for path in paths:
 			if (path[:-1] in list(self._dummy_paths.keys())) or len(path) == 1:
 				self._dummy_paths[path] = 0
 			else:
 				raise ValueError("The path up to it's last edge should be added first. Ensure the tuple ends with a comma.")
 
-	#list of number of categories/levels for each variable (a column in the df)
 	def _number_of_categories_per_variable(self):
+	'''list of number of categories/levels for each variable (a column in the df)'''
 		categories_of_variable = []
 		for variable in self.variables:
 			categories_of_variable.append(len(self.dataframe[variable].unique().tolist()))
 		return categories_of_variable
 
-	#list of all nodes: includes root, situations, leaves
 	def _nodes(self):
+	'''list of all nodes: includes root, situations, leaves'''
 		if len(list(self.paths.keys())) == 0:
 			self._counts_for_unique_path_counts()
 		node_list = ['s0'] #root node 
@@ -120,8 +121,8 @@ class event_tree(object):
 			vertex_number += 1
 		return node_list
 
-	#adds entries to the self.edge_information dict (described in __init__)
 	def _edges_labels_counts(self):
+	'''adds entries to the self.edge_information dict (described in __init__)'''
 		edge_labels_list = ['root']
 		edges_list = []
 		for path in list(self.paths.keys()):
@@ -135,63 +136,64 @@ class event_tree(object):
 			self.edge_information[((*path,),(*edges_list[-1],))] = self.paths[tuple(path)]
 		return self.edge_information
 
-	#list of counts along edges. Indexed same as self.edges and self.edge_labels
 	def _edge_counts(self):
+	'''list of counts along edges. Indexed same as self.edges and self.edge_labels'''
 		if len(list(self.edge_information.keys())) == 0:
 			self._edges_labels_counts()
 		return [self.edge_information[x] for x in list(self.edge_information.keys())]
 
-	#list of lists. Each list contains counts along edges emanating from a specific situation.
-	#indexed same as self.situations
 	def _edge_countset(self):
+	'''list of lists. Each list contains counts along edges emanating from a specific situation.
+	indexed same as self.situations'''
 		edge_countset = []
 		for node in self.situations:
 			edgeset = [edge_pair[1] for edge_pair in self.edges if edge_pair[0] == node]
 			edge_countset.append([self.edge_counts[self.terminating_nodes.index(vertex)] for vertex in edgeset])
 		return edge_countset
 
-	#list of edge labels. Indexed same as self.edges and self.edge_counts
 	def _edge_labels_creation(self):
+	'''list of edge labels. Indexed same as self.edges and self.edge_counts'''
 		if len(list(self.edge_information.keys())) == 0:
 			self._edges_labels_counts()
 		return [x[0] for x in list(self.edge_information.keys())]
 
-	#list of edges. Each edge is a tuple of (emanating vertex, terminating vertex) 
-	#Indexed same as self.edge_labels and self.edge_counts
 	def _edge_creation(self):
+	'''list of edges. Each edge is a tuple of (emanating vertex, terminating vertex) 
+	Indexed same as self.edge_labels and self.edge_counts'''
 		if len(list(self.edge_information.keys())) == 0:
 			self._edges_labels_counts()
 		return [edge_info[1] for edge_info in list(self.edge_information.keys())]
 
-	#list of leaves
 	def _get_leaves(self):
+	'''list of leaves'''
 		return [edge_pair[1] for edge_pair in self.edges if edge_pair[1] not in self.emanating_nodes]
 
-	#list of situations
 	def _get_situations(self):
+	'''list of situations'''
 		return [node for node in self.nodes if node not in self.leaves]
 
-	#list of situations where edges start. Indexed same as self.edges
 	def _emanating_nodes(self): 
+	'''list of situations where edges start. Indexed same as self.edges'''
 		return [edge_pair[0] for edge_pair in self.edges]
 
-	#list of situations where edges terminate. Indexed same as self.edges
 	def _terminating_nodes(self): 
+	'''list of situations where edges terminate. Indexed same as self.edges'''
 		return [edge_pair[1] for edge_pair in self.edges]
 
-	#default equivalent sample size for the AHC method set as the maximum number of levels
-	#for a variable (column in the dataframe)
 	def default_equivalent_sample_size(self):
+	'''default equivalent sample size for the AHC method set as the maximum number of levels
+	for a variable (column in the dataframe)'''
 		alpha = max(self._number_of_categories_per_variable()) 
 		return alpha
 
+	def default_prior(self, equivalent_sample_size):
 	'''default prior set for the AHC method using the mass conservation property.
 	That is, the equivalent sample size is the phantom sample starting at the root,
 	and it is spread equally across all edges along the tree.	
 	(see chapter 5 of Collazo, Gorgen & Smith 'Chain Event Graphs', 2018)
 	The prior is a list of lists. Each list gives the prior along the edges of a 
 	specific situation. Indexed same as self.situations & self.egde_countset'''
-	def default_prior(self, equivalent_sample_size):
+
 		default_prior = [0] *len(self.situations)
 		sample_size_at_node = dict()
 		sample_size_at_node[self.root] = equivalent_sample_size
@@ -205,11 +207,11 @@ class event_tree(object):
 				sample_size_at_node[terminating_node] = equal_distribution_of_sample
 		return default_prior
 
+	def default_hyperstage(self):
 	'''deafult hyperstage for the AHC method. Hyperstage is a list of lists such that two situaions
 	can be in the same stage only if there are elements of the same list for some list in the hyperstage.
 	The default is to allow all situations with the same number of outgoing edges and the same edge labels 
 	to be in a common list. '''
-	def default_hyperstage(self):
 		default_hyperstage = []
 		info_of_edges = []
 		for node in self.situations:
@@ -227,10 +229,11 @@ class event_tree(object):
 			default_hyperstage = default_hyperstage + [situations_with_value_edges]
 		return default_hyperstage
 
+	def default_compact_hyperstage(self):
 	'''similar to a default hyperstage except that there is one added condition. Situations can be in the same
 	hyperstage only if they additionally satisfy the condition of being at the same distance from some leaf of 
 	the event tree'''
-	def default_compact_hyperstage(self):
+
 		default_hyperstage = []
 		info_of_edges = []
 		for node in self.situations:
@@ -255,16 +258,16 @@ class event_tree(object):
 					compact_hyperstage = compact_hyperstage + [compact_set]
 		return compact_hyperstage
 
-	#Writing the event tree as a networkx graph so as to calculate the shortest distance to a leaf
 	def _event_tree_networkx(self):
+	'''Writing the event tree as a networkx graph so as to calculate the shortest distance to a leaf'''
 		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
 		tree = nx.DiGraph()
 		for edge in self.edges:
 			tree.add_edge(edge[0], edge[1])
 		return tree
 
-	#calculating shortest distance from each of the situations to a leaf
 	def _shortest_path(self):
+	'''calculating shortest distance from each of the situations to a leaf'''
 		tree = self._event_tree_networkx()
 		shortest_path = []
 		for node in self.situations:
@@ -277,47 +280,47 @@ class event_tree(object):
 			shortest_path.append(min(path_distance))
 		return shortest_path
 
+	def posterior(self, prior):
 	'''calculating the posterior edge counts for the AHC method. The posterior for each edge is
 	obtained as the sum of its prior and edge count. Here we do this such that the posterior is a 
 	list of lists. Each list gives the posterior along the edges emanating from a specific vertex.
 	The indexing is the same as self.edge_countset and self.situations'''
-	def posterior(self, prior):
 		posterior = []
 		for index in range(0, len(prior)):
 			posterior.append(list(map(add, prior[index], self.edge_countset[index])))
 		return posterior
 
-	#function to calculate log gamma of the sum of an array
 	def _function1(self, array):
+	'''function to calculate log gamma of the sum of an array'''
 		return special.gammaln(sum(array))
 
-	#function to calculate log gamma of each element of an array
 	def _function2(self, array):
+	'''function to calculate log gamma of each element of an array'''
 		return sum([special.gammaln(number) for number in array])
 
-	#calculating log likelihood given a prior and posterior
 	def _loglikehood(self, prior, posterior):
+	'''calculating log likelihood given a prior and posterior'''
 		prior_contribution = [(self._function1(element) - self._function2(element)) for element in prior]
 		posterior_contribution = [(self._function2(element) - self._function1(element)) for element in posterior]
 		return (sum(prior_contribution) + sum(posterior_contribution))
 
-	#calculates the bayes factor comparing two models which differ in only one stage
 	def _bayesfactor(self, prior1, posterior1, prior2, posterior2):
+	'''calculates the bayes factor comparing two models which differ in only one stage'''
 		new_prior = list(map(add, prior1, prior2))
 		new_posterior = list(map(add, posterior1, posterior2))
 		return (self._function1(new_prior) - self._function1(new_posterior) + self._function2(new_posterior) - self._function2(new_prior) 
 			+ self._function1(posterior1) + self._function1(posterior2) - self._function1(prior1) - self._function1(prior2) 
 			+ self._function2(prior1) + self._function2(prior2) - self._function2(posterior1) - self._function2(posterior2))
 
-	#fucntion to check if two situations belong to the same set in the hyperstage
 	def _issubset(self, item, hyperstage):
+	'''fucntion to check if two situations belong to the same set in the hyperstage'''
 		if any(set(item).issubset(element) for element in hyperstage) == True:
 			return 1
 		else:
 			return 0 
 
-	#function to sort a list of lists to remove repetitions
 	def _sort_list(self, a_list_of_lists):
+	'''function to sort a list of lists to remove repetitions'''
 		for index1 in range(0, len(a_list_of_lists)):
 			for index2 in range(index1+1, len(a_list_of_lists)):
 				array1 = a_list_of_lists[index1]
@@ -332,10 +335,10 @@ class event_tree(object):
 		else:
 			return self._sort_list(new_list_of_lists)
 
+	def AHC_transitions(self, prior = None, hyperstage = None, alpha = None):
 	'''Bayesian Agglommerative Hierarchical Clustering algorithm implementation. It returns a list of lists of 
 	the situations which have been merged together, the likelihood of the final model and the mean posterior 
 	conditional probabilities of the stages.'''
-	def AHC_transitions(self, prior = None, hyperstage = None, alpha = None):
 		if alpha is None:
 			alpha = self.default_equivalent_sample_size()
 		if prior is None:
@@ -412,8 +415,8 @@ class event_tree(object):
 
 		return (merged_situations, likelihood, mean_posterior_conditional_probabilities)
 
-	#a decorator function to calculate the time taken to run the code
 	def timeit(func):
+	'''a decorator function to calculate the time taken to run the code'''
 		@functools.wraps(func)
 		def newfunc(*args, **kwargs):
 			startTime = datetime.datetime.now()
@@ -424,12 +427,12 @@ class event_tree(object):
 			return elapsedTime
 		return newfunc
 
+	#@timeit
+	def _ceg_positions_edges_optimal(self):
 	'''This function takes the output of the AHC algorithm and identifies the positions i.e. the vertices of the 
 	CEG and the edges of the CEG along with their edge labels and edge counts. Here we use the algorithm in our
 	paper with the optimal stopping time.
 	NOTE: comment out the decorator on the next line when running the code to draw the graph of the CEG.'''
-	#@timeit
-	def _ceg_positions_edges_optimal(self):
 		if self._merged_situations == None:
 			raise ValueError("Run AHC transitions first.")
 		if self._mean_posterior_conditional_probabilities == None:
@@ -561,15 +564,14 @@ class event_tree(object):
 			total = sum(counts_for_node)
 			for index in edge_indices_for_node:
 				ceg_edge_counts[index] = round(ceg_edge_counts[index]/total, 3)
-		print(len(ceg_positions))
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
+	#@timeit
+	def _ceg_positions_edges(self):
 	'''This function takes the output of the AHC algorithm and identifies the positions i.e. the vertices of the 
 	CEG and the edges of the CEG along with their edge labels and edge counts. Here we use the generalisation of 
 	Silander and Leong's algorithm which is also described in our paper in the Experiments section.
 	NOTE: comment out the decorator on the next line when running the code to draw the graph of the CEG.'''
-	#@timeit
-	def _ceg_positions_edges(self):
 		if self._merged_situations == None:
 			raise ValueError("Run AHC transitions first.")
 		if self._mean_posterior_conditional_probabilities == None:
@@ -699,16 +701,14 @@ class event_tree(object):
 			total = sum(counts_for_node)
 			for index in edge_indices_for_node:
 				ceg_edge_counts[index] = round(ceg_edge_counts[index]/total, 3)
-		print(len(ceg_positions))
 		return (ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts)
 
-
+	def ceg_figure_silander(self, filename):
 	'''to output the CEG obtained using the generalisation of the Silander and Leong algorithm described in the
 	Experiments section of our paper. 
 	NOTE: comment out the decorator (@timeit) from the self._ceg_position_edges() function before running 
 	this function.
 	'''
-	def ceg_figure_silander(self, filename):
 		ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts = self._ceg_positions_edges() 
 		nodes_for_ceg = [(node, str(node)) for node in ceg_positions]
 		ceg_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
@@ -722,11 +722,11 @@ class event_tree(object):
 		ceg_graph.write_png(str(filename) + '.png')
 		return Image(ceg_graph.create_png())
 
+	def ceg_figure_optimal(self, filename):
 	'''to output the CEG obtained using our algorithm described in our paper. 
 	NOTE: comment out the decorator (@timeit) from the self._ceg_position_edges() function before running 
 	this function.
 	'''
-	def ceg_figure_optimal(self, filename):
 		ceg_positions, ceg_edges, ceg_edge_labels, ceg_edge_counts = self._ceg_positions_edges_optimal() 
 		nodes_for_ceg = [(node, str(node)) for node in ceg_positions]
 		ceg_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
@@ -740,8 +740,8 @@ class event_tree(object):
 		ceg_graph.write_png(str(filename) + '.png')
 		return Image(ceg_graph.create_png())
 
-	#function to draw the event tree for the process described by the dataset.
 	def event_tree_figure(self, filename):
+	'''function to draw the event tree for the process described by the dataset.'''
 		nodes_for_event_tree = [(node, str(node)) for node in self.nodes]
 		event_tree_graph = ptp.Dot(graph_type = 'digraph', rankdir = 'LR')
 		for edge in self.edges:
@@ -753,9 +753,9 @@ class event_tree(object):
 		event_tree_graph.write_png(str(filename) + '.png')
 		return Image(event_tree_graph.create_png())
 
+	def _generate_colours(self, number):
 	'''generating unique colours for the staged tree and event tree. This function is seeded so that colours are
 	the same on multiple runs of the code'''
-	def _generate_colours(self, number):
 		random.seed(12345)
 		_HEX = '0123456789ABCDEF'
 		def startcolor():
@@ -768,8 +768,8 @@ class event_tree(object):
 			colours.append(newcolour)
 		return colours
 
-	#function to draw the staged tree for the process described by the dataset.
 	def staged_tree_figure(self, filename):
+	'''function to draw the staged tree for the process described by the dataset.'''
 		try:
 			self._merged_situations
 			self._mean_posterior_conditional_probabilities
