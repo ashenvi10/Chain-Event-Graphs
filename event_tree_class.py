@@ -402,6 +402,9 @@ class ceg(object):
 		for stage in list_of_merged_situations:
 			merged_situations.append([self.situations[index] for index in stage])
 		self._merged_situations = merged_situations
+		self._only_one_edge()
+
+
 		self._mean_posterior_conditional_probabilities = mean_posterior_conditional_probabilities
 		number_of_stages = len(self._merged_situations)
 		stage_colours = self._generate_colours(number_of_stages)
@@ -417,6 +420,16 @@ class ceg(object):
 		self._stage_colours = colours_for_situations
 
 		return (merged_situations, likelihood, mean_posterior_conditional_probabilities)
+
+	def _only_one_edge(self):
+		one_edge_situations = []
+		for value in self.situations:
+			number_of_edges = [node for node in self.emanating_nodes if node == value]
+			if len(number_of_edges) == 1:
+				one_edge_situations.append(value)
+		if one_edge_situations not in self._merged_situations:
+			self._merged_situations.append(one_edge_situations)
+
 
 	def timeit(func):
 		'''a decorator function to calculate the time taken to run the code'''
