@@ -50,18 +50,21 @@ shape_parameters = [2.2, 0.5, 1, 0,
 			  1.6, 0.5, 1, 1.6, 0,
 			  1.2, 1, 0 ]
 
-#generating stage clusters
+#generating stage clusters: total 11
 gt_situation_clusters = [['s0'], ['s1'], ['s2'], ['s3', 's5'],
                         ['s4', 's6'], ['s7'], ['s8', 's12'], 
                         ['s11'], ['s9', 's13'],
                         ['s15', 's17'], ['s20', 's22']]
 
-#generating edge clusters
+#generating edge clusters: total 9
 gt_edge_clusters = [[('s15', 's25'), ('s17', 's27'), ('s20', 's29'), ('s22', 's32')],
                     [('s15', 's26'), ('s17', 's28'), ('s20', 's30'), ('s22', 's33')],
-                     [('s9', 's19'), ('s13', 's24')], [('s4', 's9'), ('s6', 's13')],
-                     [ ('s20', 's31'), ('s22', 's34')], [('s7', 's15')],
-                     [('s11', 's20')], [('s8', 's17'), ('s12', 's22')],
+                     [('s9', 's19'), ('s13', 's24')], 
+                     [('s4', 's9'), ('s6', 's13')],
+                     [ ('s20', 's31'), ('s22', 's34')], 
+                     [('s7', 's15')],
+                     [('s11', 's20')], 
+                     [('s8', 's17'), ('s12', 's22')],
                      [('s7', 's16'), ('s8', 's18'), ('s4', 's10'), 
                      ('s11', 's21'), ('s12', 's23'), ('s6', 's14')]]
 
@@ -88,7 +91,7 @@ random.seed(123456)
 seeds = np.random.randint(0,100000,1)
 
 df_situation_analysis = pd.DataFrame(columns=['Population', 'Imaginary_sample_size', 'Number_of_situation_clusters', 
-                              'Sitaution_likelihood', 'Situation_error'])
+                              'Situation_likelihood', 'Situation_error'])
 df_edge_analysis = pd.DataFrame(columns=['Population', 'Phantom_holding_time', 
                               'Number_of_edge_clusters', 'Edge_likelihood', 'Edge_error'])
 
@@ -120,7 +123,7 @@ for seed in seeds:
             number_of_situation_clusters = []
             situational_error = []
 
-            for j in range(1, 10): #201
+            for j in range(1, 2): 
                   #setting imaginary sample size
                   iss = j * 0.25
                   iss_list.append(iss)
@@ -143,10 +146,10 @@ for seed in seeds:
                   situational_error.append(KL_div)
 
 
-            df_situations = pd.DataFrame({'Population': population[i-1]*len(iss_list), 
+            df_situations = pd.DataFrame({'Population': [population[i-1]]*len(iss_list), 
                                           'Imaginary_sample_size': iss_list,
                                           'Number_of_situation_clusters': number_of_situation_clusters, 
-                                          'Sitaution_likelihood': situation_likelihood, 
+                                          'Situation_likelihood': situation_likelihood, 
                                           'Situation_error': situational_error})
             df_situation_analysis = df_situation_analysis.append(df_situations,
                                                                   ignore_index = True,
@@ -160,8 +163,8 @@ for seed in seeds:
             number_of_edge_clusters = []
             edge_error = []
 
-            for k in range(1,10): 
-                  phantom_ht = k * 0.25
+            for k in range(1,2): 
+                  phantom_ht = k
                   phantom_holding_time_list.append(phantom_ht)
                   edge_likelihood.append(df1.AHC_holding_times(phantom_holding_time = phantom_ht)[1])
                   
@@ -173,7 +176,6 @@ for seed in seeds:
                               merged_edges.append([edge])
 
                   number_of_edge_clusters.append(len(merged_edges))
-
 
                   temp_mean_holding_times = df1._mean_holding_times.copy()
                   # mean lambda! not holding time
@@ -189,7 +191,7 @@ for seed in seeds:
 
                   edge_error.append(KL_div)
 
-            df_edges = pd.DataFrame({'Population': population[i-1]*len(phantom_holding_time_list), 
+            df_edges = pd.DataFrame({'Population': [population[i-1]]*len(phantom_holding_time_list), 
                                     'Phantom_holding_time': phantom_holding_time_list, 
                                     'Number_of_edge_clusters': number_of_edge_clusters, 
                                     'Edge_likelihood': edge_likelihood, 
@@ -206,7 +208,7 @@ df_edge_analysis.Population = df_edge_analysis.Population.astype('category')
 df_edge_analysis.Phantom_holding_time = df_edge_analysis.Phantom_holding_time.astype('float')
 df_edge_analysis.Number_of_edge_clusters = df_edge_analysis.Number_of_edge_clusters.astype('int')
 
-print(df_situation_analysis.head())
+df_situation_analysis.to_excel('/Users/Aditi/Dropbox/PhD stuff/Papers/CT-DCEG/data/situation_analysis.xlsx')
+df_edge_analysis.to_excel('/Users/Aditi/Dropbox/PhD stuff/Papers/CT-DCEG/data/edge_analysis.xlsx')
 
-print(df_edge_analysis.head())
 

@@ -21,7 +21,9 @@ class CtDceg(ceg):
 		here they are arranged accoridng to the alphabetic ordering of 
 		the keys of holding_time_information dictionary'''
 		self.df = params.get('dataframe_with_ht')
-		self.df = self.df.replace(np.nan, '', regex=True)
+
+		# self.df = self.df.replace(np.nan, '', regex=True) #seems to be breaking things!
+
 		self.holding_time_columns = params.get('holding_time_columns')
 		self.sample_size = params.get('sample_size')
 		self.shape_parameters = params.get('shape_parameters')
@@ -33,18 +35,18 @@ class CtDceg(ceg):
 
 		#a dict with keys as (walk of edge labels) and entry
 		# as list of holding times for that walk
-		self.holding_time_information = defaultdict(list)
-		self._dummy_holding_time_information = defaultdict(list)
-		self.holding_times = self._holding_times()
-		self.holding_time_edges = self._holding_time_edges()
+		# self.holding_time_information = defaultdict(list)
+		# self._dummy_holding_time_information = defaultdict(list)
+		# self.holding_times = self._holding_times()
+		# self.holding_time_edges = self._holding_time_edges()
 
-		#adding the repeated tree values to the orginal tree
-		self.paths = self.repeating_tree_paths()
-		#ensuring this change is propagated to self.edge_information,
-		#self.edge_counts and self.edge_countset from the ceg class
-		self.edge_information = self._edges_labels_counts()
-		self.edge_counts = self._edge_counts()
-		self.edge_countset = self._edge_countset()
+		# #adding the repeated tree values to the orginal tree
+		# self.paths = self.repeating_tree_paths()
+		# #ensuring this change is propagated to self.edge_information,
+		# #self.edge_counts and self.edge_countset from the ceg class
+		# self.edge_information = self._edges_labels_counts()
+		# self.edge_counts = self._edge_counts()
+		# self.edge_countset = self._edge_countset()
 
 		#Used in the AHC method to store
 		# - the list of edges merged into a single cluster
@@ -62,9 +64,10 @@ class CtDceg(ceg):
 		set of cyclic edges and saves that as the "original df" which is 
 		passed on to the ceg class'''
 		ceg_dataframe = self.df.copy()
+		ceg_dataframe = ceg_dataframe.iloc[:self.sample_size]
+
 		for col in self.holding_time_columns:
 			ceg_dataframe.drop(col, axis = 1, inplace = True)
-		ceg_dataframe = ceg_dataframe.iloc[:self.sample_size]
 		return ceg_dataframe
 
 	def _holding_times(self):
@@ -78,7 +81,14 @@ class CtDceg(ceg):
 				labelrow = row[1:-1]
 				labelrow = [edge_label for edge_label in labelrow if type(edge_label) == str and
 							edge_label != '']
+				print(labelrow)
+				if labelrow[0] == 'Community low loop':
+					labelrow[0] = 'Community'
+				elif labelrow[0] == 'Communal low loop':
+					labelrow[0] = 'Communal'
+
 				labelrow = tuple(labelrow)
+				print(labelrow)
 				edge = [key[1] for key in self.edge_information if key[0] == labelrow]
 				keylabel  = (labelrow, edge[0])
 
@@ -98,12 +108,15 @@ class CtDceg(ceg):
 			holdingtime_edges.append(key[1])
 		return holdingtime_edges
 			
-	def repeating_tree_paths(self):
-		'''e.g. conditions: 
-		row[1] == 'Low' then repeating from row[1]
-		row[2] == 'High' then repeating from row[3] 
+	'''def repeating_tree_paths(self):
+		e.g. conditions: 
+		if 'communal low loop' or 'community low loop' then
+			repeat from row[1]
+		else	
+			row[1] == 'Low' then repeating from row[1]
+			row[2] == 'High' then repeating from row[3] 
 		Note that conditions have to be for df minus holding time columns
-		'''
+		
 		df_repeating = self.df.copy()
 		df_repeating = df_repeating.iloc[self.sample_size:]
 
@@ -114,13 +127,21 @@ class CtDceg(ceg):
 				row = row[1:]
 				row = [edge_label for edge_label in row if edge_label != np.nan and
 				edge_label != 'NaN' and edge_label != 'nan' and edge_label != '']
-				row = tuple(row)
-				if row[1] == 'Low':
+				
+				if row[0] == 'Communal low loop' and len(row) >= 2:
+					row[0] = 'Communal'
+					row = tuple(row)
 					self.paths[row] += 1
-				elif row[1] == 'High' and len(row) >= 4:
+				elif row[0] == 'Community low loop' and len(row) >= 2:
+					row[0] = 'Community'
+					row = tuple(row)
 					self.paths[row] += 1
 
-		return self.paths
+				elif (row[0] == 'Communal' or row[0] == 'Community') and row[1] == 'High' and len(row) >= 4:
+					row = tuple(row)
+					self.paths[row] += 1
+
+		return self.paths'''
 
 	def _holdingtime_loglikelihood(self, prior_beta, prior_gamma, known_shape, holdingtimes):
 		'''calculating log likelihood given a inv gamma priors, known Weibull shape
@@ -254,7 +275,7 @@ class CtDceg(ceg):
 			if prior_beta[index] == 0 or all(item == 0 for item in holding_times[index]) == True:
 				mean_holding_times.append(0)
 			elif posterior_beta > 1:
-				mean_holding_times.append(round(posterior_gamma/(posterior_beta -1),2)) 
+				mean_holding_times.append(round(posterior_gamma/(posterior_beta -1),2)) #inverse gamma mean
 			else:
 				raise ValueError("check posterior beta")
 

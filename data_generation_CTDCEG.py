@@ -12,7 +12,7 @@ def community(a):
         val= val + ['Low', '']
     else: 
         val.append('High') #high risk
-        if a[1] <0.7: #<0.775: #treated
+        if a[1] <0.7: #treated
             val.append('Treated')
         else: #not treated
             val.append('Not treated')
@@ -28,10 +28,10 @@ def community_high_treated(a):
     else: #fall
         val.append('Fall')
         val.append(float((390.05* np.random.weibull(1.6, 1)).round(3)))
-        if d2 < 0.25: #< 0.2: #severe complications
+        if d2 < 0.25:  #severe complications
             val.append('Complications')
             val.append(float((5.4* np.random.weibull(0.5, 1)).round(3)))
-        elif d2 >= 0.25 and d2 < 0.75: # >= 0.2 and <0.8 loop
+        elif d2 >= 0.25 and d2 < 0.75: #loop
             val.append('Loop')
             val.append(float((25.3* np.random.weibull(1, 1)).round(3)))
         else: #move to communal establishment
@@ -66,7 +66,7 @@ def low(a):
     val = [] 
     d0 = a[0]
     d1 = a[1]
-    if d0 < 0.75: # <0.8 #don't fall
+    if d0 < 0.75: #don't fall
         val = val + ['No fall', 0, '', '']
     else: #fall
         val.append('Fall')
@@ -82,7 +82,7 @@ def communal(a):
         val = val + ['Low', '']
     else: #high risk
         val.append('High')
-        if a[1] < 0.70: #<0.775: #treated
+        if a[1] < 0.70:  #treated
             val.append('Treated')
         else: #not treated
             val.append('Not treated')
@@ -112,12 +112,12 @@ def communal_high_nottreated(a):
     val = [] #for transitions
     d1 = a[0]
     d2 = a[1]
-    if d1 < 0.22: #0.20: #don't fall
+    if d1 < 0.22: #don't fall
         val = val + ['No fall', 0, '', '']
     else: #fall
         val.append('Fall')
         val.append(float((224.69* np.random.weibull(2.2, 1)).round(3))) 
-        if d2 < 0.30: #0.25: #severe complications
+        if d2 < 0.30:  #severe complications
             val.append('Complications')
             val.append(float((5.4* np.random.weibull(0.5, 1)).round(3)))
         else: #loop
@@ -143,7 +143,7 @@ def data_generation(seed):
         for k in range(1,pop+1):
             ivec = np.random.rand(5,1)  
             ival = [] # data vector  
-            if ivec[0] < 0.65: # <.7 #community residents observed
+            if ivec[0] < 0.65:  #community residents observed
                 ival.append('Community')
                 ival = ival + community(ivec[1:3])            
                 if ival[-1] == 'Not treated' and ival[-2] == 'High':
@@ -167,7 +167,7 @@ def data_generation(seed):
             while n > 0: 
                 if ival[-2] == 'Complications': #individual has severe complications
                     break
-                elif ival[-7] == 'Community' and ival[-6] == 'High': #high-risk community individual
+                elif (ival[-7] == 'Community' or ival[-7] == 'Community low loop') and ival[-6] == 'High': #high-risk community individual
                     randomvalues = np.random.rand(2,1)
                     if ival[-2] == 'Loop' and ival[-5] == 'Treated': #looped back at last passage-slice
                         ival = ival + ['Community', 'High', 'Treated'] + community_high_treated(randomvalues) 
@@ -179,9 +179,9 @@ def data_generation(seed):
                         ival = ival + ['Communal', 'High', 'Not treated'] + communal_high_nottreated(randomvalues)
                                         
                 #low-risk community individual who looped back at last passage-slice    
-                elif ival[-7] == 'Community' and ival[-6] == 'Low' and ival[-2] == 'Loop': 
+                elif (ival[-7] == 'Community' or ival[-7] == 'Community low loop') and ival[-6] == 'Low' and ival[-2] == 'Loop': 
                     randomvalues = np.random.rand(2,1)
-                    ival = ival + ['Community'] + community(randomvalues)
+                    ival = ival + ['Community low loop'] + community(randomvalues)
                     randomvalues = np.random.rand(2,1)
                     if ival[-2] == 'Low':
                         ival = ival + low(randomvalues)
@@ -191,7 +191,7 @@ def data_generation(seed):
                         ival = ival + community_high_treated(randomvalues) 
                     
                 #-----  
-                elif ival[-7] == 'Communal' and ival[-6] == 'High': #high-risk communal establishment individual
+                elif (ival[-7] == 'Communal' or ival[-7] == 'Communal for loop') and ival[-6] == 'High': #high-risk communal establishment individual
                     randomvalues = np.random.rand(2,1)
                     if ival[-2] == 'Loop' and ival[-5] == 'Treated': #looped back at last passage-slice
                         ival = ival + ['Communal', 'High', 'Treated'] + communal_high_treated(randomvalues)
@@ -199,9 +199,9 @@ def data_generation(seed):
                         ival = ival + ['Communal', 'High', 'Not treated'] + communal_high_nottreated(randomvalues) 
             
                 #low-risk communal establishment individual who looped back at last passage-slice
-                elif ival[-7] == 'Communal' and ival[-6] == 'Low' and ival[-2] == 'Loop': 
+                elif (ival[-7] == 'Communal' or ival[-7] == 'Communal for loop') and ival[-6] == 'Low' and ival[-2] == 'Loop': 
                     randomvalues = np.random.rand(2,1)
-                    ival = ival + ['Communal'] + communal(randomvalues)
+                    ival = ival + ['Communal low loop'] + communal(randomvalues)
                     randomvalues = np.random.rand(2,1)
                     if ival[-2] == 'Low':
                         ival = ival + low(randomvalues)
@@ -238,7 +238,7 @@ def data_generation(seed):
                 new = [x if str(x) != 'nan' else 'NaN' for x in new]
                 ws.write_row(k+1, 0 ,new)
                 
-    data.close()
+        data.close()
 
     #Remove all the blank lines from the datasets
     for i in range(1,7): 
