@@ -69,10 +69,14 @@ class ceg(object):
 			dataframe_upto_variable = self.dataframe.loc[:, self.variables[0:variable_number+1]]
 			for row in dataframe_upto_variable.itertuples():
 				row = row[1:]
-				row = [edge_label for edge_label in row if edge_label != np.nan and
-				edge_label != 'NaN' and edge_label != 'nan' and edge_label != '']
-				row = tuple(row)
-				self._dummy_paths[row] += 1
+				new_row = [edge_label for edge_label in row if edge_label != np.nan and
+				str(edge_label) != 'NaN' and str(edge_label) != 'nan' and edge_label != '']
+				new_row = tuple(new_row)
+
+				#checking if the last edge label in row was nan. That would result in double counting
+				#nan must be identified as string
+				if  (row[-1] != np.nan and str(row[-1]) != 'NaN' and str(row[-1]) != 'nan' and row[-1] != ''):
+					self._dummy_paths[new_row] += 1
 
 		if self.sampling_zero_paths != None:
 			self.sampling_zeros(self.sampling_zero_paths)	
@@ -85,10 +89,7 @@ class ceg(object):
 		    sorted_keys = sorted_keys + sorted(unsorted_mini_list)
 
 		for key in sorted_keys:
-			if key[-1] == np.nan or str(key[-1]) == 'nan' or str(key[-1]) == 'NaN':
-				pass
-			else:
-				self.paths[key] = self._dummy_paths[key]
+			self.paths[key] = self._dummy_paths[key]
 
 		return self.paths
 
